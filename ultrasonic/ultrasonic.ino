@@ -53,7 +53,7 @@ void loop() {
     pixels.show();
   }
   else{
-//    pixels.clear();
+    pixels.clear();
     pixels.show();
   }
 }
