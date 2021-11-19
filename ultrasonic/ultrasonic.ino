@@ -2,6 +2,8 @@
 
 #define PIN 2
 
+const int numReadings = 10;
+
 int pixelNums[9][9] = {
   {0, 1, 2, 3, 4, 5, 6, 7, 8}, 
   {10, 11, 12, 13, 14, 15, 16, 17, 18}, 
@@ -22,6 +24,8 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(150, PIN, NEO_RGB + NEO_KHZ800);
 long duration;
 long distance;
 
+int total = 0;
+
 void setup() {
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
@@ -32,6 +36,8 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  //TODO: Rewrite this to not block the thread with delay()
   digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
 
@@ -39,8 +45,23 @@ void loop() {
   delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
 
-  duration = pulseIn(ECHO, HIGH);
-  distance = duration*0.034/2;
+  // subtract the last reading:
+  total = total - readings[readIndex];
+  // read from the sensor:
+  readings[readIndex] = pulseIn(ECHO, HIGH);
+  // add the reading to the total:
+  total = total + readings[readIndex];
+  // advance to the next position in the array:
+  readIndex = readIndex + 1;
+
+  // if we're at the end of the array...
+  if (readIndex >= numReadings) {
+    // ...wrap around to the beginning:
+    readIndex = 0;
+  }
+
+  // calculate the average:
+  distance = (total / numReadings)*0.034/2;
 
   if(distance < 29){
     int pix = distance/3.35;
@@ -53,7 +74,7 @@ void loop() {
     pixels.show();
   }
   else{
-    pixels.clear();
+//    pixels.clear();
     pixels.show();
   }
 }
