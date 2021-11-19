@@ -17,6 +17,8 @@ int pixelNums[9][9] = {
 };
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(150, PIN, NEO_RGB + NEO_KHZ800);
+int readings[numReadings];
+int readIndex = 0;
 
 #define ECHO 11
 #define TRIG 13
@@ -49,6 +51,8 @@ void loop() {
   total = total - readings[readIndex];
   // read from the sensor:
   readings[readIndex] = pulseIn(ECHO, HIGH);
+  Serial.print(readings[readIndex]*0.034/2);
+  Serial.print(" ");
   // add the reading to the total:
   total = total + readings[readIndex];
   // advance to the next position in the array:
@@ -63,7 +67,7 @@ void loop() {
   // calculate the average:
   distance = (total / numReadings)*0.034/2;
 
-  if(distance < 29){
+  if(distance < 29 && distance > 1){
     int pix = distance/3.35;
     pixels.clear();
     Serial.println(distance);
@@ -74,7 +78,7 @@ void loop() {
     pixels.show();
   }
   else{
-//    pixels.clear();
+    pixels.clear();
     pixels.show();
   }
 }
