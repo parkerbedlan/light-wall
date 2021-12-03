@@ -22,7 +22,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(144, PIN, NEO_RGB + NEO_KHZ800);
 #define ECHO 11
 #define TRIG 13
 
-const int numReadings = 8;
+const int numReadings = 3;
 
 int readings[numReadings];     
 int readIndex = 0;             
@@ -58,14 +58,13 @@ void loop() {
     outOfBoundsCount = 0;
     
     total = total - readings[readIndex];
-  //  readings[readIndex] = pulseIn(ECHO, HIGH)*0.034/2;
     readings[readIndex] = newestReading;
     total = total + readings[readIndex];
     readIndex = readIndex + 1;
     if (readIndex >= numReadings) {
       readIndex = 0;
     }
-    distance = (total / numReadings) ;
+    distance = (total / numReadings);
   
     if (distance <= 40 && distance > 1) {
       int pix = distance/3.35;
@@ -77,10 +76,6 @@ void loop() {
       }
       pixels.show();
     }
-  //    else{
-  //      pixels.clear();
-  //      pixels.show();
-  //    }
   } else {
     outOfBoundsCount += 1;
     if (outOfBoundsCount >= 20) {
