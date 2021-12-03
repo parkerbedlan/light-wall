@@ -24,9 +24,9 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(144, PIN, NEO_RGB + NEO_KHZ800);
 
 const int numReadings = 3;
 
-int readings[numReadings];     
-int readIndex = 0;             
-int total = 0;                
+int readings[numReadings];
+int readIndex = 0;
+int total = 0;
 int distance = 0;
 
 void setup() {
