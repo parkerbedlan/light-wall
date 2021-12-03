@@ -22,7 +22,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(144, PIN, NEO_RGB + NEO_KHZ800);
 #define ECHO 11
 #define TRIG 13
 
-const int numReadings = 10;
+const int numReadings = 8;
 
 int readings[numReadings];     
 int readIndex = 0;             
@@ -39,6 +39,8 @@ void setup() {
 
 long ts = millis();
 
+int outOfBoundsCount = 0;
+
 void loop() {
   // put your main code here, to run repeatedly:
 
@@ -50,27 +52,41 @@ void loop() {
   delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
 
-  total = total - readings[readIndex];
-  readings[readIndex] = pulseIn(ECHO, HIGH)*0.034/2;
-  total = total + readings[readIndex];
-  readIndex = readIndex + 1;
-  if (readIndex >= numReadings) {
-    readIndex = 0;
-  }
-  distance = (total / numReadings) - 16.5;
+  int newestReading = pulseIn(ECHO, HIGH)*0.034/2 - 16.5;
 
-  if (distance <= 40 && distance > 1) {
-    int pix = distance/3.35;
-    pixels.clear();
-    Serial.println(distance);
-    Serial.print(" ");
-    for(int i = 0; i<12; i++){
-      pixels.setPixelColor(pixelNums[pix][i], pixels.Color(255-(21*pix), (21*pix), (21*pix)));
+  if (newestReading <= 40 && newestReading > 1) {
+    outOfBoundsCount = 0;
+    
+    total = total - readings[readIndex];
+  //  readings[readIndex] = pulseIn(ECHO, HIGH)*0.034/2;
+    readings[readIndex] = newestReading;
+    total = total + readings[readIndex];
+    readIndex = readIndex + 1;
+    if (readIndex >= numReadings) {
+      readIndex = 0;
     }
-    pixels.show();
+    distance = (total / numReadings) ;
+  
+    if (distance <= 40 && distance > 1) {
+      int pix = distance/3.35;
+      pixels.clear();
+      Serial.println(distance);
+      Serial.print(" ");
+      for(int i = 0; i<12; i++){
+        pixels.setPixelColor(pixelNums[pix][i], pixels.Color(255-(21*pix), (21*pix), (21*pix)));
+      }
+      pixels.show();
+    }
+  //    else{
+  //      pixels.clear();
+  //      pixels.show();
+  //    }
+  } else {
+    outOfBoundsCount += 1;
+    if (outOfBoundsCount >= 20) {
+      pixels.clear();
+      pixels.show();
+      outOfBoundsCount = 0;
+    }
   }
-//    else{
-//      pixels.clear();
-//      pixels.show();
-//    }
 }
