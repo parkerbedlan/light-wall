@@ -1,29 +1,38 @@
 #include <NewPing.h>
 #include <Adafruit_NeoPixel.h>
 
-#define LEDPIN 44
+#define LEDPIN 8
 
 
-#define SONAR_NUM 6
+#define SONAR_NUM 12
 #define MAX_DIST 45
-#define PING_INTERVAL 33
+#define PING_INTERVAL 28 
+// was 33 for stability
 
 
 // set up sensors
 NewPing sonar[SONAR_NUM] = {
-  NewPing(9, 8, MAX_DIST),  //S1
-  NewPing(11, 10, MAX_DIST),  //S2
-  NewPing(13, 12, MAX_DIST),  //S3
-  NewPing(46, 48, MAX_DIST),  //S4
-  NewPing(50, 52, MAX_DIST),  //S5
-  NewPing(3, 2, MAX_DIST)  //S6  
+  NewPing(30, 31, MAX_DIST),  //S1 
+  NewPing(32, 33, MAX_DIST),  //S2
+  NewPing(47, 46, MAX_DIST),  //S3
+  NewPing(48, 49, MAX_DIST),  //S4
+  NewPing(38, 39, MAX_DIST),  //S5
+  NewPing(36, 37, MAX_DIST),  //S6
+  NewPing(26, 27, MAX_DIST),  //S7
+  NewPing(52, 53, MAX_DIST),  //S8
+  NewPing(23, 22, MAX_DIST),  //S9
+  NewPing(34, 35, MAX_DIST),  //S10
+  NewPing(40, 41, MAX_DIST),  //S11
+  NewPing(42, 43, MAX_DIST)   //S12
 };
 
 
 #define AV 6
 
-unsigned int avgs[SONAR_NUM][AV+1] = {{0}};
-int avidx = 0;
+// [...readings, index, total, oobCount] for each sensor
+int avgs[SONAR_NUM][AV+3] = {{0}};
+
+
 
 //int avg1[av] = {0};
 //int avg2[av] = {0};
@@ -99,6 +108,7 @@ void setup() {
   for (uint8_t i = 1; i < SONAR_NUM; i++){ // Set the starting time for each sensor.
     pingTimer[i] = pingTimer[i - 1] + PING_INTERVAL;
   }
+  turnOnRow(2, GREEN);
 }
 
 void loop() {
@@ -107,12 +117,15 @@ void loop() {
     if (millis() >= pingTimer[i]) {         // Is it this sensor's time to ping?
       pingTimer[i] += PING_INTERVAL * SONAR_NUM;  // Set next time this sensor will be pinged.
         if (i == 0 && currentSensor == SONAR_NUM - 1) {// Sensor ping cycle complete, do something with the results.
-        minSensorCycle(); 
+          singlePixel(); 
+//          oneSensorCycle();
       }
       sonar[currentSensor].timer_stop();          // Make sure previous timer is canceled before starting a new ping (insurance).
       currentSensor = i;                          // Sensor being accessed.
       cm[currentSensor] = 0;                      // Make distance zero in case there's no ping echo for this sensor.
       sonar[currentSensor].ping_timer(echoCheck); // Do the ping (processing continues, interrupt will call echoCheck to look for echo).
+      
+      avgs[currentSensor][avgs[currentSensor][AV]] = cm[currentSensor]; // Sorry 
     }
   }
   // Other code that *DOESN'T* analyze ping results can go here.
@@ -143,10 +156,57 @@ void oneSensorCycle() { // Sensor ping cycle complete, do something with the res
     Serial.print("S");
     Serial.print(i+1);
     Serial.print(" = ");
-    Serial.print(cm[i]);
+    char buf[10];
+    sprintf(buf, "%02d", cm[i]);
+    Serial.print(buf);
     Serial.print("cm  ");
   }
   Serial.println();
+}
+
+void singlePixel(){
+  int mindx_X = -1;
+  int minv_X = 9999;
+
+  int mindx_Y= -1;
+  int minv_Y = 9999;
+
+  #define HALF_NUM SONAR_NUM/2
+  for (uint8_t i = 0; i < HALF_NUM / 2; i++) {
+//    Serial.print(i);
+//    Serial.print("=");
+//    Serial.print(cm[i]);
+//    Serial.print("cm ");
+    if(cm[i] < minv_X && cm[i] != 0){
+      minv_X = cm[i];
+      mindx_X = i;
+    }
+    if(cm[i+HALF_NUM] < minv_Y && cm[i+HALF_NUM] != 0){
+      minv_Y = cm[i+HALF_NUM];
+      mindx_Y = i+HALF_NUM;
+    }
+  }
+  strip.clear();
+  if(mindx_X != -1 && mindx_Y != -1){
+    Serial.print("Min Sensor X: S");
+    Serial.print(mindx_X+1);
+    Serial.print(" = ");
+    Serial.print(cm[mindx_X]);
+    Serial.println();
+    Serial.print("Min Sensor Y: S");
+    Serial.print(mindx_Y+1);
+    Serial.print(" = ");
+    Serial.print(cm[mindx_Y]);
+    Serial.println();
+
+    int pix_X = (cm[mindx_X] / 3.4);
+    int pix_Y = 12 - (cm[mindx_Y] / 3.4);
+    
+    strip.setPixelColor(PIXEL_NUMS[pix_Y][pix_X], strip.gamma32(RED));
+  }
+  
+  strip.show();
+  
 }
 
 void minSensorCycle() { // Sensor ping cycle complete, do something with the results.
@@ -184,51 +244,12 @@ void minSensorCycle() { // Sensor ping cycle complete, do something with the res
   
 }
 
-void averagedSensorCycle(){
-  for (uint8_t i = 0; i < SONAR_NUM; i++) {
-    avgs[i][avidx] = cm[i];    
-  }
-  avidx = (avidx++) % AV;
-  for (uint8_t i = 0; i < SONAR_NUM; i++){
-    int rtot = 0;
-    for(uint8_t j = 0; j < AV; j++){
-      rtot += avgs[i][j];
+void averageSensorReading(int sensorNum){
+    int sum = 0;
+    for(int i=0; i < AV; i++){
+      sum += avgs[sensorNum][i];
     }
-    avgs[i][AV] = rtot / AV;
-  }
-  
-  int mindx = -1;
-  int minv = 9999;
-  
-  for (uint8_t i = 0; i < SONAR_NUM; i++) {
-//    Serial.print(i);
-//    Serial.print("=");
-//    Serial.print(cm[i]);
-//    Serial.print("cm ");
-    if(avgs[i][AV] < minv && avgs[i][AV] != 0){
-      minv = avgs[i][AV];
-      mindx = i;
-    }
-  }
-  if(mindx != -1){
-    Serial.print("Min Sensor: S");
-    Serial.print(mindx+1);
-    Serial.print(" = ");
-    Serial.print(avgs[mindx][AV]);
-    Serial.println();
-  }
-
-  //0 -> 0, 1
-  //1 -> 2, 3
-  //2 -> 4, 5
-  strip.clear();
-  int pix = avgs[mindx][AV] / 3.4;
-  pix = 12 - pix;
-  uint32_t curCol = colors[coldx];
-  strip.setPixelColor(PIXEL_NUMS[(mindx*2)][pix], strip.gamma32(curCol));
-  strip.setPixelColor(PIXEL_NUMS[(mindx*2)+1][pix], strip.gamma32(curCol));
-  strip.show();
-  coldx = (coldx++) % 3;
+    avgs[sensorNum][AV+1] = sum;
 }
 
 void touchGame(){

@@ -4,7 +4,7 @@
 #define LEDPIN 7
 
 // set up sensors
-NewPing sensor = NewPing(10,11,50);
+NewPing sensor = NewPing(2,3,39);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(144, LEDPIN, NEO_RGB + NEO_KHZ800);
 
 //const int PIXEL_NUMS[12][2] = {
@@ -37,6 +37,92 @@ const int PIXEL_NUMS[12][12] = {
   {143, 142, 141, 140, 139, 138, 137, 136, 135, 134, 133, 132}
 };
 
+struct pixel{ int x; int y; int r; int g; int b; };
+
+
+const int NUM_LINES = 79;
+struct pixel ttt[NUM_LINES] = {{0, 0, 0, 255, 83},
+{0, 1, 0, 255, 83},
+{0, 2, 0, 255, 83},
+{0, 3, 255, 255, 255},
+{0, 8, 255, 255, 255},
+{0, 9, 188, 5, 255},
+{0, 11, 188, 5, 255},
+{1, 0, 0, 255, 83},
+{1, 2, 0, 255, 83},
+{1, 3, 255, 255, 255},
+{1, 8, 255, 255, 255},
+{1, 10, 188, 5, 255},
+{2, 0, 0, 255, 83},
+{2, 1, 0, 255, 83},
+{2, 2, 0, 255, 83},
+{2, 3, 255, 255, 255},
+{2, 8, 255, 255, 255},
+{2, 9, 188, 5, 255},
+{2, 11, 188, 5, 255},
+{3, 0, 255, 255, 255},
+{3, 1, 255, 255, 255},
+{3, 2, 255, 255, 255},
+{3, 3, 255, 255, 255},
+{3, 4, 255, 255, 255},
+{3, 5, 255, 255, 255},
+{3, 6, 255, 255, 255},
+{3, 7, 255, 255, 255},
+{3, 8, 255, 255, 255},
+{3, 9, 255, 255, 255},
+{3, 10, 255, 255, 255},
+{3, 11, 255, 255, 255},
+{4, 3, 255, 255, 255},
+{4, 4, 0, 255, 83},
+{4, 5, 0, 255, 83},
+{4, 6, 0, 255, 83},
+{4, 7, 0, 255, 83},
+{4, 8, 255, 255, 255},
+{5, 3, 255, 255, 255},
+{5, 4, 0, 255, 83},
+{5, 7, 0, 255, 83},
+{5, 8, 255, 255, 255},
+{6, 3, 255, 255, 255},
+{6, 4, 0, 255, 83},
+{6, 7, 0, 255, 83},
+{6, 8, 255, 255, 255},
+{7, 3, 255, 255, 255},
+{7, 4, 0, 255, 83},
+{7, 5, 0, 255, 83},
+{7, 6, 0, 255, 83},
+{7, 7, 0, 255, 83},
+{7, 8, 255, 255, 255},
+{8, 0, 255, 255, 255},
+{8, 1, 255, 255, 255},
+{8, 2, 255, 255, 255},
+{8, 3, 255, 255, 255},
+{8, 4, 255, 255, 255},
+{8, 5, 255, 255, 255},
+{8, 6, 255, 255, 255},
+{8, 7, 255, 255, 255},
+{8, 8, 255, 255, 255},
+{8, 9, 255, 255, 255},
+{8, 10, 255, 255, 255},
+{8, 11, 255, 255, 255},
+{9, 0, 188, 5, 255},
+{9, 2, 188, 5, 255},
+{9, 3, 255, 255, 255},
+{9, 8, 255, 255, 255},
+{9, 9, 188, 5, 255},
+{9, 11, 188, 5, 255},
+{10, 1, 188, 5, 255},
+{10, 3, 255, 255, 255},
+{10, 8, 255, 255, 255},
+{10, 10, 188, 5, 255},
+{11, 0, 188, 5, 255},
+{11, 2, 188, 5, 255},
+{11, 3, 255, 255, 255},
+{11, 8, 255, 255, 255},
+{11, 9, 188, 5, 255},
+{11, 11, 188, 5, 255},
+};
+
+
 const uint32_t BLUE = strip.Color(64,8,255);
 const uint32_t GREEN = strip.Color(46,209,80);
 const uint32_t RED = strip.Color(232,31,16);
@@ -49,8 +135,9 @@ uint32_t getRandomColor(){
 }
 
 bool found = true;
+bool game = true;
 int place = -99;
-const int FROM_EDGE = 3;
+const int FROM_EDGE = 0;
 
 void setup() {
   Serial.begin(9600); 
@@ -58,8 +145,8 @@ void setup() {
   strip.setBrightness(100);
   strip.clear();
   // put your setup code here, to run once:
-  strip.setPixelColor(PIXEL_NUMS[4][0], strip.gamma32(getRandomColor()));
-  strip.setPixelColor(PIXEL_NUMS[4][1], strip.gamma32(getRandomColor()));
+  //strip.setPixelColor(PIXEL_NUMS[4][0], strip.gamma32(getRandomColor()));
+  //strip.setPixelColor(PIXEL_NUMS[4][1], strip.gamma32(getRandomColor()));
   strip.show();
 }
 
@@ -70,6 +157,18 @@ void loop() {
   //Serial.print(1);
   //Serial.print(": ");
   int s1 = sensor.convert_cm(sensor.ping_median(5)) - FROM_EDGE;
+  if(!game){
+   for(int i = 0; i < NUM_LINES; i++){
+     struct pixel cur = ttt[i];
+     uint8_t r = cur.r;
+     uint8_t g = cur.g;
+     uint8_t b = cur.b;
+     strip.setPixelColor(PIXEL_NUMS[cur.x][cur.y], strip.gamma32(strip.Color(r,g,b)));
+    }
+    strip.show();
+    if(s1 > 0) game = true;
+    return;
+  }
   if(found){
     strip.clear();
     place = random(4, 35);
@@ -89,7 +188,7 @@ void loop() {
 //      Serial.print(int(s1/3.4));
 //      Serial.println();
       
-      if(abs(s1-place) < 3){
+      if(abs(s1-place) < 4){
         lightUpBoard(GREEN);
         found = true;
         delay(2000);
